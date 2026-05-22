@@ -5,12 +5,21 @@
 export function openBrowser(url: string): void {
   try {
     if (process.platform === "win32") {
-      // `explorer` opens the default browser and, unlike `cmd /c start`,
-      // does not mis-parse the `&` characters in an OAuth URL.
-      Bun.spawn(["explorer", url], {
-        stdout: "ignore",
-        stderr: "ignore",
-      });
+      // PowerShell's Start-Process reliably hands the URL to the default
+      // browser. The URL is single-quoted so the `&` query separators are
+      // taken literally; OAuth URLs are percent-encoded and contain no
+      // single quotes, so this is safe. `explorer` and `cmd /c start` both
+      // mis-handle such URLs and can open a file window instead.
+      Bun.spawn(
+        [
+          "powershell",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `Start-Process '${url}'`,
+        ],
+        { stdout: "ignore", stderr: "ignore" },
+      );
     } else if (process.platform === "darwin") {
       Bun.spawn(["open", url], { stdout: "ignore", stderr: "ignore" });
     } else {
