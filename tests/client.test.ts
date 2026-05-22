@@ -11,7 +11,10 @@ function recordingFetch(
   responder: (call: RecordedCall) => Response,
 ): { fetchFn: typeof fetch; calls: RecordedCall[] } {
   const calls: RecordedCall[] = [];
-  const fetchFn = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  const fetchFn = (async (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
     const call: RecordedCall = {
       url: String(input),
       method: init?.method ?? "GET",
@@ -19,7 +22,7 @@ function recordingFetch(
     };
     calls.push(call);
     return responder(call);
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
   return { fetchFn, calls };
 }
 

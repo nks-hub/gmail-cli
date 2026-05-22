@@ -15,7 +15,7 @@ function jsonFetch(body: unknown, status = 200): typeof fetch {
     new Response(JSON.stringify(body), {
       status,
       headers: { "content-type": "application/json" },
-    })) as typeof fetch;
+    })) as unknown as typeof fetch;
 }
 
 const creds = { clientId: "client-id", clientSecret: "client-secret" };
