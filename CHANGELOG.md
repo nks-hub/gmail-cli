@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `install.sh` and `install.ps1` install scripts that download the latest
+  release binary, verify its checksum, and add it to `PATH`.
+
 ## [0.1.0] - 2026-05-22
 
 ### Added

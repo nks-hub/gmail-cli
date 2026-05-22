@@ -21,7 +21,27 @@ which makes it a practical building block for automation and AI agents.
 
 ## Installation
 
-### Download a release binary
+### Install script (recommended)
+
+**macOS / Linux:**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nks-hub/gmail-cli/main/install.sh | sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/nks-hub/gmail-cli/main/install.ps1 | iex
+```
+
+The script downloads the correct binary for your platform from the latest
+release, verifies its SHA-256 checksum, installs it to a per-user directory,
+and adds that directory to your `PATH`. Override the location with the
+`GMAIL_CLI_INSTALL_DIR` environment variable. Restart your terminal afterwards
+so the updated `PATH` takes effect.
+
+### Download a release binary manually
 
 Download the binary for your platform from the
 [Releases](https://github.com/nks-hub/gmail-cli/releases) page, rename it to
