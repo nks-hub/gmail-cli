@@ -46,7 +46,7 @@ jobs:
       - name: Upload Windows binary for signing
         if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
         id: unsigned-artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gmail-windows-x64-unsigned
           path: dist/gmail-windows-x64.exe
