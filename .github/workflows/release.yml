@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run tests
+        run: bun test
+
+      - name: Build cross-platform binaries
+        run: |
+          mkdir -p dist
+          build() {
+            echo "Building $2"
+            bun build src/index.ts --compile --target="$1" --outfile "dist/$2"
+          }
+          build bun-windows-x64  gmail-windows-x64.exe
+          build bun-darwin-x64   gmail-darwin-x64
+          build bun-darwin-arm64 gmail-darwin-arm64
+          build bun-linux-x64    gmail-linux-x64
+          build bun-linux-arm64  gmail-linux-arm64
+
+      # Optional Authenticode signing of the Windows binary. Inactive until the
+      # repository is enrolled in the SignPath Foundation open-source program
+      # and the SIGNPATH_ORGANIZATION_ID variable and SIGNPATH_API_TOKEN secret
+      # are configured. Until then the release ships unsigned binaries plus
+      # SHA-256 checksums.
+      - name: Upload Windows binary for signing
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        id: unsigned-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmail-windows-x64-unsigned
+          path: dist/gmail-windows-x64.exe
+
+      - name: Submit SignPath signing request
+        if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: gmail-cli
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: windows-binary
+          github-artifact-id: ${{ steps.unsigned-artifact.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum gmail-* > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/gmail-*
+            dist/SHA256SUMS
+          generate_release_notes: true

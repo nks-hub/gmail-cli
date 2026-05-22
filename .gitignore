@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Credentials and secrets - NEVER commit
+credentials.json
+token.json
+token-*.json
+*.token.json
+client_secret*.json
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor and IDE local configs
+.[a-z]*/
+!.github/
+!.vscode/
+/[A-Z]*.md
+!/README.md
+!/SECURITY.md
+!/CHANGELOG.md
+!/CONTRIBUTING.md
