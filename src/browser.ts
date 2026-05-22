@@ -5,8 +5,9 @@
 export function openBrowser(url: string): void {
   try {
     if (process.platform === "win32") {
-      // The empty string is the (required) window-title argument of `start`.
-      Bun.spawn(["cmd", "/c", "start", "", url], {
+      // `explorer` opens the default browser and, unlike `cmd /c start`,
+      // does not mis-parse the `&` characters in an OAuth URL.
+      Bun.spawn(["explorer", url], {
         stdout: "ignore",
         stderr: "ignore",
       });
