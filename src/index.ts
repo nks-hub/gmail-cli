@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { registerAnalyze } from "./cli/commands/analyze.ts";
 import { registerAttachments } from "./cli/commands/attachments.ts";
 import { registerAuth } from "./cli/commands/auth.ts";
+import { registerCalendar } from "./cli/commands/calendar.ts";
 import { registerDrafts } from "./cli/commands/drafts.ts";
 import { registerLabels } from "./cli/commands/labels.ts";
 import { registerMessages } from "./cli/commands/messages.ts";
@@ -36,6 +37,7 @@ registerLabels(program);
 registerDrafts(program);
 registerThreads(program);
 registerAttachments(program);
+registerCalendar(program);
 registerAnalyze(program);
 
 program.addHelpText(

@@ -144,6 +144,15 @@ before the command, e.g. `gmail --json inbox`.
 | `attachments list\|download` | List and download message attachments |
 | `top-senders` | Show which senders fill your inbox |
 
+### Calendar
+
+| Command | Description |
+|---------|-------------|
+| `calendar list` | List the calendars in the account |
+| `calendar events` | List upcoming events (`--calendar`, `--from`, `--to`, `--query`, `--max`) |
+| `calendar add <summary>` | Create an event (`--date` for all-day, `--start`/`--end` for timed, `--description`, `--location`, `--reminder <min>`) |
+| `calendar delete <eventId>` | Delete an event |
+
 ---
 
 ## Common Workflows

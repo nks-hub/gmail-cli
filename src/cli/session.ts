@@ -1,23 +1,37 @@
 import { isExpired, refreshAccessToken } from "../auth/oauth.ts";
 import { loadCredentials, loadToken, saveToken } from "../auth/store.ts";
+import { CalendarClient } from "../calendar/client.ts";
 import { GmailClient } from "../gmail/client.ts";
 
 /**
- * Builds an authenticated {@link GmailClient} for the given account. The
- * client transparently refreshes and persists the access token whenever it is
- * expired or about to expire.
+ * Builds an access-token provider for the given account that transparently
+ * refreshes and persists the token whenever it is expired or about to expire.
  */
-export async function getClient(account?: string): Promise<GmailClient> {
+async function accessTokenProvider(
+  account?: string,
+): Promise<() => Promise<string>> {
   const credentials = await loadCredentials();
   let token = await loadToken(account);
 
-  return new GmailClient({
-    getAccessToken: async () => {
-      if (isExpired(token)) {
-        token = await refreshAccessToken({ creds: credentials, token });
-        await saveToken(token, account);
-      }
-      return token.accessToken;
-    },
+  return async () => {
+    if (isExpired(token)) {
+      token = await refreshAccessToken({ creds: credentials, token });
+      await saveToken(token, account);
+    }
+    return token.accessToken;
+  };
+}
+
+/** Builds an authenticated {@link GmailClient} for the given account. */
+export async function getClient(account?: string): Promise<GmailClient> {
+  return new GmailClient({ getAccessToken: await accessTokenProvider(account) });
+}
+
+/** Builds an authenticated {@link CalendarClient} for the given account. */
+export async function getCalendarClient(
+  account?: string,
+): Promise<CalendarClient> {
+  return new CalendarClient({
+    getAccessToken: await accessTokenProvider(account),
   });
 }
