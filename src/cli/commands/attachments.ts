@@ -76,7 +76,13 @@ export function registerAttachments(program: Command): void {
           if (targets.length === 0) {
             fail("That message has no attachments.");
           }
-          await mkdir(opts.out, { recursive: true });
+          try {
+            await mkdir(opts.out, { recursive: true });
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+              throw error;
+            }
+          }
           const saved: Array<{ filename: string; path: string; size: number }> =
             [];
           for (const target of targets) {
