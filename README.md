@@ -6,34 +6,22 @@
 [![Bun](https://img.shields.io/badge/Bun-1.3+-f9f1e1.svg)](https://bun.sh/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> A fast, scriptable Gmail command-line client — read, search, send, and organize Gmail from the terminal, scripts, or an AI assistant, with first-class JSON output.
-
-Instead of clicking through the Gmail web UI — or fighting an MCP server that
-cannot download an attachment — drive your inbox directly:
-
-- "List my unread inbox as JSON and pull out the subjects"
-- "Search `from:linkedin.com before:2025/06/01` and archive all of it"
-- "Download every attachment from this message"
-- "Send a release notification from a CI pipeline"
-- "Show me which senders fill my inbox"
-
-It ships as a single standalone binary, so it works the same on a laptop, a
-server, or inside an automation.
+> Gmail and Google Calendar command-line client: read, search, send and organize mail from the terminal, scripts or an AI assistant, with JSON output on every command.
 
 ## Features
 
-- 📦 **Standalone binary** - Single compiled executable for Windows, macOS, and Linux — no runtime to install
-- 🧾 **First-class JSON** - `--json` on every command for reliable scripting and AI-agent use
-- 📎 **Attachment support** - List and download attachments — the gap most Gmail integrations leave open
-- ⚡ **Bulk operations** - Archive, trash, label, and (un)read up to 1000 messages per API call
-- 🧙 **Interactive setup** - A guided wizard for the Google Cloud project and OAuth client
-- 👥 **Multiple accounts** - Switch mailboxes with `--account <name>`
-- 🔒 **Secure by design** - PKCE OAuth, credentials stored locally, never any secret in the repo
-- 🔁 **Resilient** - Automatic token refresh and exponential backoff on rate limits
+- 📦 **Standalone binary** - one compiled executable for Windows, macOS and Linux, no runtime to install
+- 🧾 **JSON output** - `--json` on every command
+- 📎 **Attachments** - list and download message attachments
+- ⚡ **Bulk operations** - archive, trash, label, and (un)read up to 1000 messages per API call
+- 🧙 **Interactive setup** - a wizard for the Google Cloud project and OAuth client
+- 👥 **Multiple accounts** - switch mailboxes with `--account <name>`
+- 🔒 **Local credentials** - PKCE OAuth, tokens stored on your machine, no secret in the repo
+- 🔁 **Retries** - automatic token refresh and exponential backoff on rate limits
 
 ## Requirements
 
-- **To run:** nothing — the release binary is self-contained.
+- **To run:** nothing, the release binary is self-contained.
 - **To build from source:** [Bun](https://bun.sh) 1.3 or newer.
 - **A Google account** and a Google Cloud project (the `auth setup` wizard
   creates the OAuth client for you).
@@ -63,8 +51,8 @@ and adds that directory to your `PATH`. Override the location with the
 
 Grab the binary for your platform from the
 [Releases](https://github.com/nks-hub/gmail-cli/releases) page, rename it to
-`gmail` (`gmail.exe` on Windows), put it on your `PATH`, and — on macOS or
-Linux — mark it executable with `chmod +x gmail`. Verify it against the
+`gmail` (`gmail.exe` on Windows), put it on your `PATH`, and on macOS or
+Linux mark it executable with `chmod +x gmail`. Verify it against the
 published `SHA256SUMS` file.
 
 > Release binaries are not yet code-signed, so Windows SmartScreen may warn
@@ -85,7 +73,7 @@ bun install && bun run build
 ### Authentication
 
 `gmail-cli` talks to Gmail through your own Google Cloud project, so mailbox
-access stays under your control. The interactive wizard walks you through it:
+access stays under your control. The wizard creates it:
 
 ```sh
 gmail auth setup     # create the Google Cloud project and OAuth client
@@ -148,7 +136,7 @@ before the command, e.g. `gmail --json inbox`.
 | `calendar add <summary>` | Create an event (`--date` for all-day, `--start`/`--end` for timed, `--description`, `--location`, `--reminder <min>`) |
 | `calendar delete <eventId>` | Delete an event |
 
-## Common Workflows
+## Common workflows
 
 ### 1. Triage unread mail from a script
 
@@ -185,9 +173,9 @@ unlimited).
 
 - OAuth credentials and tokens are stored only on your machine, under
   `%APPDATA%\gmail-cli\` (Windows) or `~/.config/gmail-cli/` (macOS/Linux).
-- `gmail-cli` requests only the `gmail.modify` and `gmail.send` scopes.
-  Permanent deletion is intentionally unsupported — `modify --trash` moves
-  messages to Trash instead.
+- `gmail-cli` requests the `gmail.modify`, `gmail.send`, `calendar.events`
+  and `calendar.calendarlist.readonly` scopes. Permanent deletion of mail is
+  not supported; `modify --trash` moves messages to Trash.
 - The repository and CI never contain any secret.
 
 See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
