@@ -2,15 +2,11 @@
 
 [![CI](https://github.com/nks-hub/gmail-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/nks-hub/gmail-cli/actions)
 [![Release](https://img.shields.io/github/v/release/nks-hub/gmail-cli.svg)](https://github.com/nks-hub/gmail-cli/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-3178c6.svg)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-1.3+-f9f1e1.svg)](https://bun.sh/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 > A fast, scriptable Gmail command-line client — read, search, send, and organize Gmail from the terminal, scripts, or an AI assistant, with first-class JSON output.
-
----
-
-## Why?
 
 Instead of clicking through the Gmail web UI — or fighting an MCP server that
 cannot download an attachment — drive your inbox directly:
@@ -24,13 +20,27 @@ cannot download an attachment — drive your inbox directly:
 It ships as a single standalone binary, so it works the same on a laptop, a
 server, or inside an automation.
 
----
+## Features
 
-## Quick Start
+- 📦 **Standalone binary** - Single compiled executable for Windows, macOS, and Linux — no runtime to install
+- 🧾 **First-class JSON** - `--json` on every command for reliable scripting and AI-agent use
+- 📎 **Attachment support** - List and download attachments — the gap most Gmail integrations leave open
+- ⚡ **Bulk operations** - Archive, trash, label, and (un)read up to 1000 messages per API call
+- 🧙 **Interactive setup** - A guided wizard for the Google Cloud project and OAuth client
+- 👥 **Multiple accounts** - Switch mailboxes with `--account <name>`
+- 🔒 **Secure by design** - PKCE OAuth, credentials stored locally, never any secret in the repo
+- 🔁 **Resilient** - Automatic token refresh and exponential backoff on rate limits
 
-### Installation
+## Requirements
 
-#### Install script
+- **To run:** nothing — the release binary is self-contained.
+- **To build from source:** [Bun](https://bun.sh) 1.3 or newer.
+- **A Google account** and a Google Cloud project (the `auth setup` wizard
+  creates the OAuth client for you).
+
+## Installation
+
+### Install script
 
 **macOS / Linux:**
 
@@ -49,7 +59,7 @@ release, verifies its SHA-256 checksum, installs it to a per-user directory,
 and adds that directory to your `PATH`. Override the location with the
 `GMAIL_CLI_INSTALL_DIR` environment variable, then restart your terminal.
 
-#### Download manually
+### Download manually
 
 Grab the binary for your platform from the
 [Releases](https://github.com/nks-hub/gmail-cli/releases) page, rename it to
@@ -60,7 +70,7 @@ published `SHA256SUMS` file.
 > Release binaries are not yet code-signed, so Windows SmartScreen may warn
 > about an unknown publisher on first run. Choose **More info → Run anyway**.
 
-#### From source
+### From source
 
 Requires [Bun](https://bun.sh) 1.3 or newer.
 
@@ -69,6 +79,8 @@ git clone https://github.com/nks-hub/gmail-cli.git
 cd gmail-cli
 bun install && bun run build
 ```
+
+## Configuration
 
 ### Authentication
 
@@ -81,7 +93,7 @@ gmail auth login     # sign in through the browser
 gmail auth status    # confirm you are signed in
 ```
 
-### Usage
+## Usage
 
 ```sh
 gmail inbox
@@ -90,23 +102,6 @@ gmail --json search is:unread | jq '.[].subject'
 
 Global options (`--json`, `--account`, `--max-body-length`) must be given
 before the command, e.g. `gmail --json inbox`.
-
----
-
-## Features
-
-| Feature | Description |
-|---------|-------------|
-| **Standalone binary** | Single compiled executable for Windows, macOS, and Linux — no runtime to install |
-| **First-class JSON** | `--json` on every command for reliable scripting and AI-agent use |
-| **Attachment support** | List and download attachments — the gap most Gmail integrations leave open |
-| **Bulk operations** | Archive, trash, label, and (un)read up to 1000 messages per API call |
-| **Interactive setup** | A guided wizard for the Google Cloud project and OAuth client |
-| **Multiple accounts** | Switch mailboxes with `--account <name>` |
-| **Secure by design** | PKCE OAuth, credentials stored locally, never any secret in the repo |
-| **Resilient** | Automatic token refresh and exponential backoff on rate limits |
-
----
 
 ## Commands
 
@@ -153,8 +148,6 @@ before the command, e.g. `gmail --json inbox`.
 | `calendar add <summary>` | Create an event (`--date` for all-day, `--start`/`--end` for timed, `--description`, `--location`, `--reminder <min>`) |
 | `calendar delete <eventId>` | Delete an event |
 
----
-
 ## Common Workflows
 
 ### 1. Triage unread mail from a script
@@ -182,15 +175,11 @@ gmail attachments download <messageId> --out ./downloads
 echo "Build succeeded." | gmail send --to team@example.com --subject "CI"
 ```
 
----
-
 ## Output
 
 Every command prints human-readable text by default and structured JSON when
 `--json` is set. `--max-body-length <n>` truncates message bodies (`0` =
 unlimited).
-
----
 
 ## Security
 
@@ -203,7 +192,11 @@ unlimited).
 
 See [SECURITY.md](SECURITY.md) for how to report vulnerabilities.
 
----
+## Links
+
+- [Gmail API](https://developers.google.com/gmail/api)
+- [Bun](https://bun.sh/)
+- [NKS Hub](https://github.com/nks-hub)
 
 ## Development
 
@@ -214,17 +207,6 @@ bun run typecheck  # type-check with tsc
 bun run build      # compile the binary to dist/gmail
 bun run start -- --help
 ```
-
----
-
-## Requirements
-
-- **To run:** nothing — the release binary is self-contained.
-- **To build from source:** [Bun](https://bun.sh) 1.3 or newer.
-- **A Google account** and a Google Cloud project (the `auth setup` wizard
-  creates the OAuth client for you).
-
----
 
 ## Contributing
 
@@ -247,14 +229,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-## Links
-
-- [Gmail API](https://developers.google.com/gmail/api)
-- [Bun](https://bun.sh/)
-- [NKS Hub](https://github.com/nks-hub)
 
 ---
 
