@@ -1,6 +1,8 @@
 version: 2
 updates:
-  - package-ecosystem: npm
+  # bun keeps bun.lock in step; the npm ecosystem only edits package.json,
+  # which then fails `bun install --frozen-lockfile` in CI.
+  - package-ecosystem: bun
     directory: "/"
     schedule:
       interval: weekly
