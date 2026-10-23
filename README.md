@@ -118,7 +118,9 @@ before the command, e.g. `gmail --json inbox`.
 ### Composing
 | Command | Description |
 |---------|-------------|
-| `send` | Compose and send a message (flags, file, or stdin) |
+| `send` | Compose and send a message (flags, file, or stdin); `--from` picks the sender |
+| `reply <id>` | Reply inside the original thread (`--all`, `--from`, `--cc`, `--reply-to`) |
+| `aliases` | List the "Send mail as" addresses accepted by `--from` |
 | `drafts list\|create\|send\|delete` | Manage drafts |
 
 ### Attachments & analysis
@@ -162,6 +164,14 @@ gmail attachments download <messageId> --out ./downloads
 ```sh
 echo "Build succeeded." | gmail send --to team@example.com --subject "CI"
 ```
+
+### 5. Answer a support mail from a shared address
+
+```sh
+gmail reply <messageId> --from support@example.com --body-file answer.txt
+```
+
+`reply` sets `In-Reply-To`, `References` and the thread id, so the answer lands in the same conversation for both sides. Without `--from` it sends from the alias the original message was addressed to, falling back to the account default. `--from` accepts only verified addresses listed by `gmail aliases`, because Gmail would otherwise replace the sender with the primary address.
 
 ## Output
 

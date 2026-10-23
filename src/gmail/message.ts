@@ -151,6 +151,122 @@ export function encodeHeaderValue(value: string): string {
   return `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
 }
 
+/** A Gmail "Send mail as" identity (users.settings.sendAs). */
+export interface SendAs {
+  sendAsEmail: string;
+  displayName?: string;
+  isDefault?: boolean;
+  isPrimary?: boolean;
+  verificationStatus?: string;
+}
+
+/** Formats a send-as identity as a `From` header value. */
+export function formatFrom(alias: SendAs): string {
+  return alias.displayName
+    ? `${encodeHeaderValue(alias.displayName)} <${alias.sendAsEmail}>`
+    : alias.sendAsEmail;
+}
+
+/**
+ * Picks the sending identity: the requested address, otherwise the alias the
+ * original message was addressed to, otherwise the account default. Gmail
+ * silently rewrites an unverified `From`, so unknown addresses are rejected.
+ */
+export function pickSendAs(
+  aliases: SendAs[],
+  requested?: string,
+  recipients: string[] = [],
+): SendAs {
+  const usable = aliases.filter(
+    (a) => a.isPrimary || a.verificationStatus === "accepted",
+  );
+  const byAddress = (address: string) =>
+    usable.find((a) => a.sendAsEmail.toLowerCase() === address.toLowerCase());
+  if (requested) {
+    const match = byAddress(extractEmailAddress(requested));
+    if (!match) {
+      const known = usable.map((a) => a.sendAsEmail).join(", ");
+      throw new Error(`${requested} is not a verified send-as address. Available: ${known}`);
+    }
+    return match;
+  }
+  for (const recipient of recipients) {
+    const match = byAddress(recipient);
+    if (match) return match;
+  }
+  const fallback = usable.find((a) => a.isDefault) ?? usable[0];
+  if (!fallback) throw new Error("The account has no usable send-as address.");
+  return fallback;
+}
+
+/** Splits an address-list header on commas outside quotes and angle brackets. */
+export function splitAddressList(value: string): string[] {
+  const out: string[] = [];
+  let current = "";
+  let quoted = false;
+  let angle = false;
+  for (const ch of value) {
+    if (ch === '"') quoted = !quoted;
+    else if (ch === "<" && !quoted) angle = true;
+    else if (ch === ">" && !quoted) angle = false;
+    if (ch === "," && !quoted && !angle) {
+      if (current.trim()) out.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  if (current.trim()) out.push(current.trim());
+  return out;
+}
+
+/** Recipient, subject and threading headers for a reply. */
+export interface ReplyHeaders {
+  to: string;
+  cc?: string;
+  subject: string;
+  inReplyTo?: string;
+  references?: string;
+}
+
+/**
+ * Derives reply headers from the original message. With `all`, the original
+ * To and Cc recipients go to Cc, minus the sender and the user's own
+ * addresses (`self`).
+ */
+export function buildReplyHeaders(
+  headers: GmailHeader[] | undefined,
+  opts: { all?: boolean; self?: string[] } = {},
+): ReplyHeaders {
+  const to = getHeader(headers, "Reply-To") || getHeader(headers, "From");
+  const subject = getHeader(headers, "Subject");
+  const messageId = getHeader(headers, "Message-ID");
+  const references = [getHeader(headers, "References"), messageId]
+    .filter(Boolean)
+    .join(" ");
+  const reply: ReplyHeaders = {
+    to,
+    subject: /^re:/i.test(subject) ? subject : `Re: ${subject}`,
+    inReplyTo: messageId || undefined,
+    references: references || undefined,
+  };
+  if (opts.all) {
+    const skip = new Set(
+      [...(opts.self ?? []), ...splitAddressList(to)].map(extractEmailAddress),
+    );
+    const cc = [getHeader(headers, "To"), getHeader(headers, "Cc")]
+      .flatMap(splitAddressList)
+      .filter((a) => {
+        const address = extractEmailAddress(a);
+        if (skip.has(address)) return false;
+        skip.add(address);
+        return true;
+      });
+    if (cc.length) reply.cc = cc.join(", ");
+  }
+  return reply;
+}
+
 function chunkBase64(base64: string): string {
   return (base64.match(/.{1,76}/g) ?? []).join("\r\n");
 }

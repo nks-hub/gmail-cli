@@ -1,6 +1,6 @@
 import { GMAIL_API_BASE } from "../config.ts";
 import { GoogleApiClient } from "../google/api.ts";
-import type { GmailMessage } from "./message.ts";
+import type { GmailMessage, SendAs } from "./message.ts";
 
 export type { ApiError } from "../google/api.ts";
 
@@ -104,11 +104,24 @@ export class GmailClient extends GoogleApiClient {
     });
   }
 
-  /** Sends a pre-built base64url RFC822 message. */
-  sendMessage(raw: string): Promise<GmailMessage> {
+  /**
+   * Sends a pre-built base64url RFC822 message. `threadId` files a reply into
+   * the original conversation; Gmail also needs matching In-Reply-To and
+   * References headers and the same subject.
+   */
+  sendMessage(raw: string, threadId?: string): Promise<GmailMessage> {
     return this.request<GmailMessage>("POST", "/users/me/messages/send", {
-      body: { raw },
+      body: threadId ? { raw, threadId } : { raw },
     });
+  }
+
+  /** Lists the account's "Send mail as" identities. */
+  async listSendAs(): Promise<SendAs[]> {
+    const res = await this.request<{ sendAs?: SendAs[] }>(
+      "GET",
+      "/users/me/settings/sendAs",
+    );
+    return res.sendAs ?? [];
   }
 
   /** Adds and/or removes labels on a single message. */

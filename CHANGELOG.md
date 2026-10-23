@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `reply <id>` answers inside the original thread (In-Reply-To, References,
+  thread id, `Re:` subject), with `--all` for reply-all.
+- `--from` on `send` and `reply` selects a "Send mail as" address; `reply`
+  defaults to the alias the original was addressed to.
+- `aliases` lists the send-as addresses.
+
 - `install.sh` and `install.ps1` install scripts that download the latest
   release binary, verify its checksum, and add it to `PATH`.
 

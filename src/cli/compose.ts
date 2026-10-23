@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { buildRawMessage } from "../gmail/message.ts";
+import type { OutgoingMessage } from "../gmail/message.ts";
 
-/** Options shared by the `send` and `drafts create` commands. */
+/** Options shared by the `send`, `reply` and `drafts create` commands. */
 export interface ComposeOptions {
   to: string;
+  from?: string;
   subject?: string;
   cc?: string;
   bcc?: string;
@@ -18,7 +20,10 @@ export interface ComposeOptions {
  * Resolves the message body from explicit options, files, or stdin, and
  * returns a base64url RFC822 message ready for the Gmail API.
  */
-export async function buildOutgoingRaw(opts: ComposeOptions): Promise<string> {
+export async function buildOutgoingRaw(
+  opts: ComposeOptions,
+  threading: Pick<OutgoingMessage, "inReplyTo" | "references"> = {},
+): Promise<string> {
   let body = opts.body;
   if (body === undefined && opts.bodyFile) {
     body = await readFile(opts.bodyFile, "utf8");
@@ -37,11 +42,13 @@ export async function buildOutgoingRaw(opts: ComposeOptions): Promise<string> {
   }
   return buildRawMessage({
     to: opts.to,
+    from: opts.from,
     cc: opts.cc,
     bcc: opts.bcc,
     replyTo: opts.replyTo,
     subject: opts.subject ?? "",
     body: body ?? "",
     html,
+    ...threading,
   });
 }

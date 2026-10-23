@@ -2,14 +2,18 @@ import { Buffer } from "node:buffer";
 import { describe, expect, test } from "bun:test";
 import {
   buildRawMessage,
+  buildReplyHeaders,
   decodeBase64Url,
   encodeBase64Url,
   encodeHeaderValue,
   extractEmailAddress,
+  formatFrom,
   getHeader,
   parseMessage,
+  pickSendAs,
+  splitAddressList,
 } from "../src/gmail/message.ts";
-import type { GmailMessage } from "../src/gmail/message.ts";
+import type { GmailMessage, SendAs } from "../src/gmail/message.ts";
 
 const b64url = (text: string) => Buffer.from(text, "utf8").toString("base64url");
 
@@ -97,7 +101,87 @@ describe("encodeHeaderValue", () => {
   });
 });
 
+describe("splitAddressList", () => {
+  test("keeps commas inside quoted display names", () => {
+    expect(splitAddressList('"Doe, John" <j@x.com>, b@y.com')).toEqual([
+      '"Doe, John" <j@x.com>',
+      "b@y.com",
+    ]);
+  });
+});
+
+describe("pickSendAs", () => {
+  const aliases: SendAs[] = [
+    { sendAsEmail: "me@gmail.com", isPrimary: true, isDefault: true },
+    { sendAsEmail: "dev@corp.cz", displayName: "Dev", verificationStatus: "accepted" },
+    { sendAsEmail: "pending@corp.cz", verificationStatus: "pending" },
+  ];
+  test("honours an explicit address in any case", () => {
+    expect(pickSendAs(aliases, "DEV@corp.cz").sendAsEmail).toBe("dev@corp.cz");
+  });
+  test("rejects an unverified or unknown address", () => {
+    expect(() => pickSendAs(aliases, "pending@corp.cz")).toThrow("not a verified");
+    expect(() => pickSendAs(aliases, "nobody@x.com")).toThrow("Available: me@gmail.com, dev@corp.cz");
+  });
+  test("defaults to the alias the original was addressed to", () => {
+    expect(pickSendAs(aliases, undefined, ["other@x.com", "dev@corp.cz"]).sendAsEmail).toBe("dev@corp.cz");
+  });
+  test("falls back to the default identity", () => {
+    expect(pickSendAs(aliases, undefined, ["other@x.com"]).sendAsEmail).toBe("me@gmail.com");
+  });
+  test("formats the display name into the From header", () => {
+    expect(formatFrom(aliases[1]!)).toBe("Dev <dev@corp.cz>");
+  });
+});
+
+describe("buildReplyHeaders", () => {
+  const headers = [
+    { name: "From", value: "Matt <matt@ext.com>" },
+    { name: "To", value: '"dev@corp.cz" <dev@corp.cz>, ann@ext.com' },
+    { name: "Cc", value: "me@gmail.com, matt@ext.com" },
+    { name: "Subject", value: "Permissions Errors" },
+    { name: "Message-Id", value: "<abc@ext.com>" },
+    { name: "References", value: "<root@ext.com>" },
+  ];
+  test("threads the reply to the sender", () => {
+    expect(buildReplyHeaders(headers)).toEqual({
+      to: "Matt <matt@ext.com>",
+      subject: "Re: Permissions Errors",
+      inReplyTo: "<abc@ext.com>",
+      references: "<root@ext.com> <abc@ext.com>",
+    });
+  });
+  test("prefers Reply-To and keeps an existing Re: prefix", () => {
+    const reply = buildReplyHeaders([
+      ...headers.filter((h) => h.name !== "Subject"),
+      { name: "Reply-To", value: "list@ext.com" },
+      { name: "Subject", value: "RE: Permissions Errors" },
+    ]);
+    expect(reply.to).toBe("list@ext.com");
+    expect(reply.subject).toBe("RE: Permissions Errors");
+  });
+  test("reply-all copies other recipients without self or the sender", () => {
+    const reply = buildReplyHeaders(headers, { all: true, self: ["dev@corp.cz", "me@gmail.com"] });
+    expect(reply.cc).toBe("ann@ext.com");
+  });
+});
+
 describe("buildRawMessage", () => {
+  test("writes From and threading headers", () => {
+    const raw = buildRawMessage({
+      to: "a@b.com",
+      from: "Dev <dev@corp.cz>",
+      subject: "Re: Hi",
+      body: "x",
+      inReplyTo: "<abc@ext.com>",
+      references: "<abc@ext.com>",
+    });
+    const decoded = Buffer.from(raw, "base64url").toString("utf8");
+    expect(decoded).toContain("From: Dev <dev@corp.cz>");
+    expect(decoded).toContain("In-Reply-To: <abc@ext.com>");
+    expect(decoded).toContain("References: <abc@ext.com>");
+  });
+
   test("builds a plain-text message", () => {
     const raw = buildRawMessage({
       to: "a@b.com",
