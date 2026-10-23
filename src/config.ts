@@ -4,7 +4,7 @@ import { join } from "node:path";
 /** Application identity. */
 export const APP_NAME = "gmail-cli";
 export const BINARY_NAME = "gmail";
-export const VERSION = "0.3.0";
+export const VERSION = "0.3.1";
 
 /** Gmail REST API base URL. */
 export const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1";

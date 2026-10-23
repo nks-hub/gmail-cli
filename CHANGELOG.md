@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-10-23
+
+### Changed
+
+- commander 15, TypeScript 7 and @types/bun 1.4 (`tsconfig.json` now lists
+  the `bun` types, which TypeScript 7 no longer loads on its own).
+- Dependabot uses the `bun` ecosystem so its updates include `bun.lock`.
+
 ## [0.3.0] - 2026-10-23
 
 ### Added
