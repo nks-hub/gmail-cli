@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import { parseMessage } from "../../gmail/message.ts";
 import type { ComposeOptions } from "../compose.ts";
-import { buildOutgoingRaw } from "../compose.ts";
+import { buildOutgoingRaw, collectPaths } from "../compose.ts";
 import { color, emit, fail, renderTable, truncate } from "../output.ts";
 import { getClient } from "../session.ts";
 
@@ -56,7 +56,7 @@ export function registerDrafts(program: Command): void {
   drafts
     .command("create")
     .description("Create a draft")
-    .requiredOption("--to <address>", "recipient address")
+    .option("--to <address>", "recipient address (a draft may have none)")
     .option("--subject <text>", "subject line", "")
     .option("--cc <address>", "carbon-copy address")
     .option("--bcc <address>", "blind carbon-copy address")
@@ -64,6 +64,7 @@ export function registerDrafts(program: Command): void {
     .option("--body-file <path>", "read the plain-text body from a file")
     .option("--html <html>", "HTML body")
     .option("--html-file <path>", "read the HTML body from a file")
+    .option("--attach <path>", "attach a file (repeat for more files)", collectPaths)
     .action(async (opts: ComposeOptions) => {
       const { account } = program.opts<{ account?: string }>();
       try {

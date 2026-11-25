@@ -12,7 +12,7 @@
 
 - 📦 **Standalone binary** - one compiled executable for Windows, macOS and Linux, no runtime to install
 - 🧾 **JSON output** - `--json` on every command
-- 📎 **Attachments** - list and download message attachments
+- 📎 **Attachments** - list and download message attachments, attach files to sent mail and drafts
 - ⚡ **Bulk operations** - archive, trash, label, and (un)read up to 1000 messages per API call
 - 🧙 **Interactive setup** - a wizard for the Google Cloud project and OAuth client
 - 👥 **Multiple accounts** - switch mailboxes with `--account <name>`
@@ -118,10 +118,10 @@ before the command, e.g. `gmail --json inbox`.
 ### Composing
 | Command | Description |
 |---------|-------------|
-| `send` | Compose and send a message (flags, file, or stdin); `--from` picks the sender |
+| `send` | Compose and send a message (flags, file, or stdin); `--from` picks the sender, `--attach` adds files |
 | `reply <id>` | Reply inside the original thread (`--all`, `--from`, `--cc`, `--reply-to`) |
 | `aliases` | List the "Send mail as" addresses accepted by `--from` |
-| `drafts list\|create\|send\|delete` | Manage drafts |
+| `drafts list\|create\|send\|delete` | Manage drafts; `create` takes `--attach` and works without `--to` |
 
 ### Attachments & analysis
 | Command | Description |
@@ -172,6 +172,15 @@ gmail reply <messageId> --from support@example.com --body-file answer.txt
 ```
 
 `reply` sets `In-Reply-To`, `References` and the thread id, so the answer lands in the same conversation for both sides. Without `--from` it sends from the alias the original message was addressed to, falling back to the account default. `--from` accepts only verified addresses listed by `gmail aliases`, because Gmail would otherwise replace the sender with the primary address.
+
+### 6. Attach files
+
+```sh
+gmail send --to client@example.com --subject "Invoice 2026-11" --body-file note.txt --attach invoice.pdf --attach timesheet.xlsx
+gmail drafts create --subject "Install script" --body "See attachment." --attach setup.cmd.txt
+```
+
+`--attach` can be repeated and works on `send`, `reply` and `drafts create`. The MIME type is taken from the file extension (`application/octet-stream` when unknown), and non-ASCII file names are encoded per RFC 2231. A draft without `--to` stays in Drafts until you add a recipient in Gmail.
 
 ## Output
 

@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import type { ComposeOptions } from "../compose.ts";
-import { buildOutgoingRaw } from "../compose.ts";
+import { buildOutgoingRaw, collectPaths } from "../compose.ts";
 import {
   buildReplyHeaders,
   extractEmailAddress,
@@ -20,7 +20,8 @@ function addBodyOptions(command: Command): Command {
     .option("--body <text>", "plain-text body")
     .option("--body-file <path>", "read the plain-text body from a file")
     .option("--html <html>", "HTML body")
-    .option("--html-file <path>", "read the HTML body from a file");
+    .option("--html-file <path>", "read the HTML body from a file")
+    .option("--attach <path>", "attach a file (repeat for more files)", collectPaths);
 }
 
 /** Registers the `send`, `reply` and `aliases` commands. */

@@ -56,9 +56,17 @@ export interface ParsedMessage {
   attachments: Attachment[];
 }
 
+/** A file attached to an outgoing message. */
+export interface OutgoingAttachment {
+  filename: string;
+  mimeType: string;
+  data: Uint8Array;
+}
+
 /** A message to be composed and sent. */
 export interface OutgoingMessage {
-  to: string;
+  /** Optional only for drafts, which Gmail accepts without a recipient. */
+  to?: string;
   from?: string;
   cc?: string;
   bcc?: string;
@@ -68,6 +76,7 @@ export interface OutgoingMessage {
   html?: string;
   inReplyTo?: string;
   references?: string;
+  attachments?: OutgoingAttachment[];
 }
 
 /** Decodes Gmail's base64url-encoded body data to a UTF-8 string. */
@@ -272,12 +281,63 @@ function chunkBase64(base64: string): string {
 }
 
 /**
+ * Content-Type and Content-Disposition parameters for an attachment name:
+ * plain quoted ASCII when possible, otherwise RFC 2047 for `name` and
+ * RFC 2231 for `filename`, which is what mail clients read.
+ */
+function attachmentNameParams(filename: string): { name: string; filename: string } {
+  if (/^[\x20-\x7e]*$/.test(filename) && !/["\\]/.test(filename)) {
+    return { name: `name="${filename}"`, filename: `filename="${filename}"` };
+  }
+  const pct = encodeURIComponent(filename).replace(
+    /['()*!]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  return {
+    name: `name="${encodeHeaderValue(filename)}"`,
+    filename: `filename*=UTF-8''${pct}`,
+  };
+}
+
+/** The message body as one MIME entity: plain text, or text and HTML alternatives. */
+function bodyEntity(message: OutgoingMessage): string {
+  const textB64 = chunkBase64(Buffer.from(message.body, "utf8").toString("base64"));
+  if (!message.html) {
+    return [
+      'Content-Type: text/plain; charset="UTF-8"',
+      "Content-Transfer-Encoding: base64",
+      "",
+      textB64,
+    ].join("\r\n");
+  }
+  const boundary = `bnd_${crypto.randomUUID()}`;
+  const htmlB64 = chunkBase64(Buffer.from(message.html, "utf8").toString("base64"));
+  return [
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    textB64,
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    htmlB64,
+    `--${boundary}--`,
+  ].join("\r\n");
+}
+
+/**
  * Builds an RFC822 message and returns it base64url-encoded, ready for the
  * Gmail `messages.send` endpoint. When `html` is supplied, a
- * `multipart/alternative` body is produced.
+ * `multipart/alternative` body is produced; attachments wrap the body in
+ * `multipart/mixed`.
  */
 export function buildRawMessage(message: OutgoingMessage): string {
-  const headers: string[] = [`To: ${message.to}`];
+  const headers: string[] = [];
+  if (message.to) headers.push(`To: ${message.to}`);
   if (message.from) headers.push(`From: ${message.from}`);
   if (message.cc) headers.push(`Cc: ${message.cc}`);
   if (message.bcc) headers.push(`Bcc: ${message.bcc}`);
@@ -287,34 +347,29 @@ export function buildRawMessage(message: OutgoingMessage): string {
   headers.push(`Subject: ${encodeHeaderValue(message.subject)}`);
   headers.push("MIME-Version: 1.0");
 
-  const textB64 = chunkBase64(Buffer.from(message.body, "utf8").toString("base64"));
-  let raw: string;
-
-  if (message.html) {
-    const boundary = `bnd_${crypto.randomUUID()}`;
-    headers.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
-    const htmlB64 = chunkBase64(
-      Buffer.from(message.html, "utf8").toString("base64"),
-    );
-    const parts = [
-      `--${boundary}`,
-      'Content-Type: text/plain; charset="UTF-8"',
-      "Content-Transfer-Encoding: base64",
-      "",
-      textB64,
-      `--${boundary}`,
-      'Content-Type: text/html; charset="UTF-8"',
-      "Content-Transfer-Encoding: base64",
-      "",
-      htmlB64,
-      `--${boundary}--`,
-    ];
-    raw = `${headers.join("\r\n")}\r\n\r\n${parts.join("\r\n")}`;
-  } else {
-    headers.push('Content-Type: text/plain; charset="UTF-8"');
-    headers.push("Content-Transfer-Encoding: base64");
-    raw = `${headers.join("\r\n")}\r\n\r\n${textB64}`;
+  const body = bodyEntity(message);
+  const attachments = message.attachments ?? [];
+  if (attachments.length === 0) {
+    return Buffer.from(`${headers.join("\r\n")}\r\n${body}`, "utf8").toString("base64url");
   }
 
-  return Buffer.from(raw, "utf8").toString("base64url");
+  const boundary = `mix_${crypto.randomUUID()}`;
+  headers.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+  const parts = [`--${boundary}`, body];
+  for (const file of attachments) {
+    const names = attachmentNameParams(file.filename);
+    parts.push(
+      `--${boundary}`,
+      `Content-Type: ${file.mimeType}; ${names.name}`,
+      `Content-Disposition: attachment; ${names.filename}`,
+      "Content-Transfer-Encoding: base64",
+      "",
+      chunkBase64(Buffer.from(file.data).toString("base64")),
+    );
+  }
+  parts.push(`--${boundary}--`);
+  return Buffer.from(
+    `${headers.join("\r\n")}\r\n\r\n${parts.join("\r\n")}`,
+    "utf8",
+  ).toString("base64url");
 }

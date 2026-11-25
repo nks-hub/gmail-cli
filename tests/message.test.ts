@@ -209,3 +209,56 @@ describe("buildRawMessage", () => {
     expect(decoded).toContain("text/html");
   });
 });
+
+describe("buildRawMessage with attachments", () => {
+  const decode = (raw: string) => Buffer.from(raw, "base64url").toString("utf8");
+  const file = {
+    filename: "report.pdf",
+    mimeType: "application/pdf",
+    data: new Uint8Array([37, 80, 68, 70]),
+  };
+
+  test("wraps the body and files in multipart/mixed", () => {
+    const decoded = decode(
+      buildRawMessage({ to: "a@b.com", subject: "Hi", body: "text", attachments: [file] }),
+    );
+    const boundary = decoded.match(/multipart\/mixed; boundary="([^"]+)"/)?.[1];
+    expect(boundary).toBeDefined();
+    expect(decoded).toContain('Content-Type: text/plain; charset="UTF-8"');
+    expect(decoded).toContain('Content-Type: application/pdf; name="report.pdf"');
+    expect(decoded).toContain('Content-Disposition: attachment; filename="report.pdf"');
+    expect(decoded).toContain(Buffer.from(file.data).toString("base64"));
+    expect(decoded.trimEnd().endsWith(`--${boundary}--`)).toBe(true);
+  });
+
+  test("nests the HTML alternative inside the mixed message", () => {
+    const decoded = decode(
+      buildRawMessage({
+        to: "a@b.com", subject: "Hi", body: "text", html: "<b>x</b>", attachments: [file],
+      }),
+    );
+    expect(decoded.indexOf("multipart/mixed")).toBeLessThan(
+      decoded.indexOf("multipart/alternative"),
+    );
+    expect(decoded).toContain("text/html");
+  });
+
+  test("encodes a non-ASCII file name per RFC 2231", () => {
+    const decoded = decode(
+      buildRawMessage({
+        to: "a@b.com",
+        subject: "Hi",
+        body: "x",
+        attachments: [{ ...file, filename: "Smlouva č. 1.pdf" }],
+      }),
+    );
+    expect(decoded).toContain("filename*=UTF-8''Smlouva%20%C4%8D.%201.pdf");
+    expect(decoded).toContain('name="=?UTF-8?B?');
+  });
+
+  test("omits the To header when a draft has no recipient", () => {
+    const decoded = decode(buildRawMessage({ subject: "Draft", body: "x" }));
+    expect(decoded).not.toContain("To:");
+    expect(decoded).toContain("Subject: Draft");
+  });
+});

@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
 import { buildRawMessage } from "../gmail/message.ts";
-import type { OutgoingMessage } from "../gmail/message.ts";
+import type { OutgoingAttachment, OutgoingMessage } from "../gmail/message.ts";
 
 /** Options shared by the `send`, `reply` and `drafts create` commands. */
 export interface ComposeOptions {
-  to: string;
+  to?: string;
   from?: string;
   subject?: string;
   cc?: string;
@@ -14,6 +15,27 @@ export interface ComposeOptions {
   bodyFile?: string;
   html?: string;
   htmlFile?: string;
+  attach?: string[];
+}
+
+/** Commander collector that lets `--attach` be repeated. */
+export function collectPaths(value: string, previous: string[] = []): string[] {
+  return [...previous, value];
+}
+
+/** Reads files to attach; the MIME type comes from the file extension. */
+export async function readAttachments(paths: string[] = []): Promise<OutgoingAttachment[]> {
+  return Promise.all(
+    paths.map(async (path) => {
+      let data: Buffer;
+      try {
+        data = await readFile(path);
+      } catch (error) {
+        throw new Error(`Cannot read attachment ${path}: ${(error as Error).message}`);
+      }
+      return { filename: basename(path), mimeType: Bun.file(path).type, data };
+    }),
+  );
 }
 
 /**
@@ -40,6 +62,7 @@ export async function buildOutgoingRaw(
     }
     body = await Bun.stdin.text();
   }
+  const attachments = await readAttachments(opts.attach);
   return buildRawMessage({
     to: opts.to,
     from: opts.from,
@@ -49,6 +72,7 @@ export async function buildOutgoingRaw(
     subject: opts.subject ?? "",
     body: body ?? "",
     html,
+    attachments,
     ...threading,
   });
 }
