@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-11-25
+
+### Added
+
+- `--attach <path>` on `send`, `reply` and `drafts create`, repeatable. Files
+  go into a `multipart/mixed` message, the MIME type comes from the
+  extension, and non-ASCII names use RFC 2231.
+
+### Changed
+
+- `drafts create` no longer requires `--to`.
+
 ## [0.3.2] - 2026-11-24
 
 ### Fixed
